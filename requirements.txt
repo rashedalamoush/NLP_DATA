@@ -5,4 +5,5 @@ numpy
 yfinance
 scikit-learn
 xgboost
-mplfinance
+transformers
+torch
