@@ -83,6 +83,7 @@ def fetch_news(ticker, days=7):
         rows   = conn.execute("""
             SELECT title, published_at, finbert_label, finbert_score
             FROM news WHERE ticker=?
+            AND finbert_label IS NOT NULL
             ORDER BY published_at DESC LIMIT 15
         """, (ticker,)).fetchall()
         conn.close()
@@ -98,23 +99,49 @@ def fetch_news(ticker, days=7):
     except: pass
     try:
         import yfinance as yf
-        news = yf.Ticker(ticker).news or []
-        for n in news[:10]:
-            title = n.get('title','')
-            t     = title.lower()
-            bull  = sum(1 for k in BULLISH_KW if k in t)
-            bear  = sum(1 for k in BEARISH_KW if k in t)
-            sent  = "positive" if bull>bear else "negative" if bear>bull else "neutral"
-            pub_time = n.get('providerPublishTime') or n.get('pubDate') or 0
+        raw_news = yf.Ticker(ticker).news or []
+        titles = []
+        dates  = []
+        for n in raw_news[:10]:
+            title = n.get('title','') or n.get('headline','')
+            if not title: continue
             try:
-                date_str = datetime.fromtimestamp(int(pub_time)).strftime('%Y-%m-%d') if pub_time else 'N/A'
+                pub = n.get('providerPublishTime') or n.get('pubDate') or 0
+                date_str = datetime.fromtimestamp(int(pub)).strftime('%Y-%m-%d') if pub else 'N/A'
             except:
                 date_str = 'N/A'
+            titles.append(title)
+            dates.append(date_str)
+
+        # Try FinBERT first
+        finbert_results = []
+        try:
+            from transformers import pipeline
+            finbert = pipeline("text-classification",
+                               model="ProsusAI/finbert",
+                               top_k=1)
+            for title in titles:
+                res = finbert(title[:512])[0][0]
+                label = res["label"].lower()
+                score = round(res["score"], 3)
+                finbert_results.append((label, score))
+        except:
+            finbert_results = []
+
+        for i, title in enumerate(titles):
+            if finbert_results:
+                sent, conf = finbert_results[i]
+            else:
+                t    = title.lower()
+                bull = sum(1 for k in BULLISH_KW if k in t)
+                bear = sum(1 for k in BEARISH_KW if k in t)
+                sent = "positive" if bull>bear else "negative" if bear>bull else "neutral"
+                conf = 0.65
             articles.append({
                 "title":      title,
-                "date":       date_str,
+                "date":       dates[i],
                 "sentiment":  sent,
-                "confidence": 0.65
+                "confidence": conf
             })
     except: pass
     return articles
