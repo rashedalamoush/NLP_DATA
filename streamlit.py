@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-app.py — StockSense AI Agent (Streamlit Dashboard)
-Run: streamlit run app.py
-"""
-
 import sys, os, sqlite3, warnings
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -86,12 +80,11 @@ def fetch_news(ticker, days=7):
     articles = []
     try:
         conn   = sqlite3.connect(DB_PATH)
-        cutoff = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d')
         rows   = conn.execute("""
             SELECT title, published_at, finbert_label, finbert_score
-            FROM news WHERE ticker=? AND published_at >= ?
+            FROM news WHERE ticker=?
             ORDER BY published_at DESC LIMIT 15
-        """, (ticker, cutoff)).fetchall()
+        """, (ticker,)).fetchall()
         conn.close()
         if rows:
             for r in rows:
@@ -112,9 +105,14 @@ def fetch_news(ticker, days=7):
             bull  = sum(1 for k in BULLISH_KW if k in t)
             bear  = sum(1 for k in BEARISH_KW if k in t)
             sent  = "positive" if bull>bear else "negative" if bear>bull else "neutral"
+            pub_time = n.get('providerPublishTime') or n.get('pubDate') or 0
+            try:
+                date_str = datetime.fromtimestamp(int(pub_time)).strftime('%Y-%m-%d') if pub_time else 'N/A'
+            except:
+                date_str = 'N/A'
             articles.append({
                 "title":      title,
-                "date":       datetime.fromtimestamp(n.get('providerPublishTime',0)).strftime('%Y-%m-%d'),
+                "date":       date_str,
                 "sentiment":  sent,
                 "confidence": 0.65
             })
