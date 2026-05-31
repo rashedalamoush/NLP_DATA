@@ -459,7 +459,7 @@ if articles:
 st.markdown("---")
 st.markdown("""
 <div style='text-align:center;color:#546E7A;font-size:0.85em'>
-StockSense AI Agent — CS722 NLP + CS728 Data Mining — JUST 2026<br>
+StockSense AI Agent<br>
 Model: XGBoost + FinBERT + Technical Indicators | Dataset: 28,598 samples<br>
 ⚠️ For research purposes only. Not financial advice.
 </div>
