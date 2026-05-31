@@ -316,7 +316,7 @@ with st.sidebar:
 
 # ── Header ────────────────────────────────────────────────────
 st.markdown("# 📊 StockSense AI Agent")
-st.markdown("*Multimodal Financial Sentiment Analysis — CS722 NLP + CS728 Data Mining*")
+st.markdown("*Multimodal Financial Sentiment Analysis*")
 st.markdown("---")
 
 if not run_btn:
